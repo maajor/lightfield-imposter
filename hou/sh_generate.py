@@ -1,56 +1,55 @@
-import os
-import re
+import os, re
+import random
 from PIL import Image
 import numpy as np
-import math
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from mpl_toolkits.mplot3d import Axes3D
 
-from sh.sh_util import shTerms, shEvaluate, relit, sh_visualize
+from sh.sh_util import shTerms, colour2grey, shEvaluate, relit, sh_visualize, plot_points, plot_sh, collect_images, sample_sh
 from matplotlib.colors import LinearSegmentedColormap
 
-pattern = re.compile(r"\w*.[-0-9]*.[0-9]*.png")
+RECOLLECT = False
+RESAMPLE = False
 
+imgs = [f for f in os.listdir("render") if f.startswith("cloud_sh")]
+img = imgs[290]
 
-LMAX=3
-PI = 3.1415926
+if RECOLLECT:
+    colors, coords = collect_images()
+    np.save("cloud_sh_set", {"colors":colors, "coords":coords})
+else:
+    dataset = np.load("cloud_sh_set.npy", allow_pickle=True)
 
-def deg2rad(deg):
-    return deg * PI / 180.0
+LMAX=2
 
-def sample_sh(lat_step=10.0, long_step=12.0, res=512, lmax=2):
-    res = 512
-
-    max_term = shTerms(lmax)
-
-    coeffs = np.zeros((512, 512, max_term))
-
-    lat_size = deg2rad(lat_step)
-    long_size = deg2rad(long_step)
-
-    weight_base = lat_size * long_size / ( PI * 4 )
-
-    for f in os.listdir("render"):
-        m = pattern.match(f)
-        if m:
-            im = np.array(Image.open('render/{0}'.format(f)))
-            im = colour2grey(im) / 255.0
-            theta = deg2rad(float(f.split(".")[1])+90)
-            phi = deg2rad(float(f.split(".")[2]))
-            weight = weight_base * math.sin(theta)
-            item_coeff = shEvaluate(theta, phi, lmax)
-            view = np.repeat(im[:,:,np.newaxis], max_term, axis=2) * np.tile(item_coeff, (res,res, 1))
-
-            coeffs += view * weight
-            print('img {0} at theta {1} phi {2}'.format(f, theta, phi))
+if RESAMPLE:
+    coeffs = sample_sh(colors=dataset.item().get('colors'), coords=dataset.item().get('coords'), lmax=LMAX)
+    np.save("cloud_sh", coeffs)
+else:
+    coeffs = np.load("cloud_sh.npy")
     
-    return coeffs
 
-#coeffs = sample_sh(lmax=LMAX)
+imgs = [f for f in os.listdir("render") if f.startswith("cloud_sh")]
+imgid = random.randint(0,540)
+img = imgs[imgid]
+print(img)
+theta = np.deg2rad(float(img.split(".")[1])+90)
+phi = np.deg2rad(float(img.split(".")[2]))
+img_original = np.array(Image.open('render/{0}'.format(img)))
 
-#np.save("cloud_sh", coeffs)
+lit = relit(theta, phi, LMAX, coeffs)
+diff = np.sum(lit - img_original[:,:,0])
+print(diff/(512*512))
 
-coeffs = np.load("cloud_sh.npy")
+plt.imshow(lit, cmap='gray')
+plt.show()
 
-theta = deg2rad(7+90)
-phi = deg2rad(264)
-relit(phi, theta, LMAX, coeffs)
+'''
+plt.rc('text', usetex=True)
+
+fig = plt.figure(figsize=2*plt.figaspect(1.))
+ax = fig.add_subplot(projection='3d')
+plot_points(ax, coords=dataset.item().get('coords'), colors=dataset.item().get('colors')[:,pix_y,pix_x])
+plot_sh(ax, LMAX, coeffs[pix_y,pix_x,:])
+plt.show()'''

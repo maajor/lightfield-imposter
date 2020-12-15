@@ -1,8 +1,9 @@
 
 # https://github.com/chalmersgit/SphericalHarmonics/blob/master/sphericalHarmonics.py
-import os, sys
+import os, sys, re
 import numpy as np
 import imageio as im
+from PIL import Image
 import cv2 # resize images with float support
 from scipy import ndimage # gaussian blur
 import time
@@ -67,12 +68,6 @@ def shEvaluate(theta, phi, lmax):
 			coeffsMatrix[:,:,index] = SH(l, m, theta, phi)
 	return coeffsMatrix
 
-def grey2colour(greyImg):
-	return (np.repeat(greyImg[:,:][:, :, np.newaxis], 3, axis=2)).astype(np.float32)
-
-def colour2grey(colImg):
-	return ((colImg[:,:,0]+colImg[:,:,1]+colImg[:,:,2])/3).astype(np.float32)
-
 def shTermsWithinBand(l):
 	return (l*2)+1
 
@@ -114,14 +109,101 @@ def sh_visualize(lmax, coeffs):
             imgIndex+=1
     plt.show()
 
-def relit(phi, theta, lmax, coeffs):
+def relit(theta, phi, lmax, coeffs):
     res = coeffs.shape[0]
     lit = np.zeros((res, res))
     samples = shEvaluate(theta, phi, lmax)
-    lit = np.sum(coeffs * np.tile(samples, (res,res, 1)), axis=2)
-    '''for l in range(0,lmax+1):
-        for m in range(-l,l+1):
-            index = shIndex(l, m)
-            lit += coeffs[:,:,index] * SH(l, m, theta, phi)'''
-    plt.imshow(lit, cmap='gray', vmin=0, vmax=0.1)
-    plt.show()
+    for x in range(res):
+        for y in range(res):
+            lit[x,y] = np.sum(coeffs[x,y,:] * samples)
+    #lit = np.sum(coeffs * np.tile(samples, (res,res, 1)), axis=2)
+    #plt.imshow(lit, cmap='gray')
+    #plt.show()
+    return lit
+
+def plot_points(ax, coords, colors, scale=2):
+    xyz = np.array([np.sin(coords[:,0]) * np.sin(coords[:,1]),
+                np.sin(coords[:,0]) * np.cos(coords[:,1]),
+                np.cos(coords[:,0])])
+
+    ax.scatter(xyz[0,:]*colors*scale, xyz[1,:]*colors*scale, xyz[2,:]*colors*scale)
+
+    # Draw a set of x, y, z axes for reference.
+    ax_lim = 0.5
+    ax.plot([-ax_lim, 1.5*ax_lim], [0,0], [0,0], c='0.5', lw=1, zorder=10)
+    ax.plot([0,0], [-ax_lim, 1.5*ax_lim], [0,0], c='0.5', lw=1, zorder=10)
+    ax.plot([0,0], [0,0], [-ax_lim, 1.5*ax_lim], c='0.5', lw=1, zorder=10)
+    ax_lim = 0.5
+    ax.set_xlim(-ax_lim, ax_lim)
+    ax.set_ylim(-ax_lim, ax_lim)
+    ax.set_zlim(-ax_lim, ax_lim)
+    ax.axis('off')
+
+def plot_sh(ax, el, coeff, scale=2):
+    """Plot the spherical harmonic of degree el and order m on Axes ax."""
+
+    theta = np.linspace(0, np.pi, 100)
+    phi = np.linspace(0, 2*np.pi, 100)
+    # Create a 2-D meshgrid of (theta, phi) angles.
+    theta, phi = np.meshgrid(theta, phi)
+    # Calculate the Cartesian coordinates of each point in the mesh.
+    xyz = np.array([np.sin(theta) * np.sin(phi),
+                    np.sin(theta) * np.cos(phi),
+                    np.cos(theta)])
+
+    item_coeff = shEvaluate(theta, phi, el)
+
+    view = item_coeff * np.tile(coeff, (100,100, 1))
+    lens = np.sum(view, axis=2)
+
+    Yx, Yy, Yz = lens * xyz * scale
+
+    # Colour the plotted surface according to the sign of Y.
+    cmap = plt.cm.ScalarMappable(cmap=plt.get_cmap('PRGn'))
+    cmap.set_clim(-0.5, 0.5)
+
+    ax.plot_surface(Yx, Yy, Yz,
+                    facecolors=cmap.to_rgba(lens),
+                    rstride=2, cstride=2)
+
+def sample_sh(colors, coords, lat_step=10.0, long_step=12.0, lmax=2):
+    res = colors.shape[1]
+    lens = colors.shape[0]
+
+    max_term = shTerms(lmax)
+
+    coeffs = np.zeros((res, res, max_term))
+
+    lat_size = np.deg2rad(lat_step)
+    long_size = np.deg2rad(long_step)
+
+    weight_base = lat_size * long_size #* ( np.pi * 4 )
+
+    total_weight=0
+
+    for i in range(lens):
+        theta, phi = coords[i]
+        weight = weight_base * np.sin(theta)
+        item_coeff = shEvaluate(theta, phi, lmax)
+        total_weight += weight
+        view = np.einsum("ij,ijk->ijk", colors[i], item_coeff)
+        coeffs += view * weight
+        print("sample {0}".format(i))
+    return coeffs
+
+pattern = re.compile(r"\w*.[-0-9]*.[0-9]*.png")
+
+def collect_images():
+    coords = []
+    colors = []
+
+    for f in os.listdir("render"):
+        m = pattern.match(f)
+        if m:
+            im = np.array(Image.open('render/{0}'.format(f)))
+            theta = np.deg2rad(float(f.split(".")[1])+90)
+            phi = np.deg2rad(float(f.split(".")[2]))
+            coords.append([theta,phi])
+            colors.append(im[:,:,0])
+            print('img {0} at theta {1} phi {2}'.format(f, theta, phi))
+    return np.array(colors), np.array(coords)
