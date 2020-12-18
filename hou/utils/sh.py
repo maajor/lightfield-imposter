@@ -121,7 +121,7 @@ def relit(theta, phi, lmax, coeffs):
     #plt.show()
     return lit
 
-def plot_points(ax, coords, colors, scale=2):
+def plot_points(ax, coords, colors, scale=0.002):
     xyz = np.array([np.sin(coords[:,0]) * np.sin(coords[:,1]),
                 np.sin(coords[:,0]) * np.cos(coords[:,1]),
                 np.cos(coords[:,0])])
@@ -139,7 +139,7 @@ def plot_points(ax, coords, colors, scale=2):
     ax.set_zlim(-ax_lim, ax_lim)
     ax.axis('off')
 
-def plot_sh(ax, el, coeff, scale=2):
+def plot_sh(ax, el, coeff, scale=0.002):
     """Plot the spherical harmonic of degree el and order m on Axes ax."""
 
     theta = np.linspace(0, np.pi, 100)
@@ -190,20 +190,3 @@ def sample_sh(colors, coords, lat_step=10.0, long_step=12.0, lmax=2):
         coeffs += view * weight
         print("sample {0}".format(i))
     return coeffs
-
-pattern = re.compile(r"\w*.[-0-9]*.[0-9]*.png")
-
-def collect_images():
-    coords = []
-    colors = []
-
-    for f in os.listdir("render"):
-        m = pattern.match(f)
-        if m:
-            im = np.array(Image.open('render/{0}'.format(f)))
-            theta = np.deg2rad(float(f.split(".")[1])+90)
-            phi = np.deg2rad(float(f.split(".")[2]))
-            coords.append([theta,phi])
-            colors.append(im[:,:,0])
-            print('img {0} at theta {1} phi {2}'.format(f, theta, phi))
-    return np.array(colors), np.array(coords)
