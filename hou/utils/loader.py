@@ -20,5 +20,6 @@ def collect_images():
             theta, phi = parse_image_angle(f)
             coords.append([theta,phi])
             colors.append(im[:,:,0])
+            alpha = im[:,:,3]
             print('img {0} at theta {1} phi {2}'.format(f, theta, phi))
-    return np.array(colors), np.array(coords)
+    return np.array(colors), np.array(coords), np.array(alpha)

@@ -85,6 +85,8 @@ def sh_visualize(lmax, coeffs):
     cols = shTermsWithinBand(lmax)
     imgIndex = 0
 
+    coeffs = np.interp(coeffs, (coeffs.min(), coeffs.max()), (-1, +1))
+
     cdict =	{'red':	((0.0, 1.0, 1.0),
                         (0.5, 0.0, 0.0),
                         (1.0, 0.0, 0.0)),
@@ -94,7 +96,7 @@ def sh_visualize(lmax, coeffs):
                 'blue':	((0.0, 0.0, 0.0),
                         (1.0, 0.0, 0.0))}
 
-    _, axs = plt.subplots(nrows=rows, ncols=cols, gridspec_kw={'wspace':0.1, 'hspace':0.1}, squeeze=True, figsize=(8, 8))
+    _, axs = plt.subplots(nrows=rows, ncols=cols, gridspec_kw={'wspace':0.05, 'hspace':0.05})
     for c in range(0,cols):
         for r in range(0,rows):
             axs[r,c].axis('off')
@@ -107,6 +109,7 @@ def sh_visualize(lmax, coeffs):
             axs[l, i+colOffset].axis("off")
             axs[l, i+colOffset].imshow(coeffs[:,:,imgIndex], cmap=LinearSegmentedColormap('RedGreen', cdict), vmin=-1, vmax=1)
             imgIndex+=1
+    plt.savefig("imgs/sh_levels.png")
     plt.show()
 
 def relit(theta, phi, lmax, coeffs):
@@ -190,3 +193,23 @@ def sample_sh(colors, coords, lat_step=10.0, long_step=12.0, lmax=2):
         coeffs += view * weight
         print("sample {0}".format(i))
     return coeffs
+
+def normalize(lmax, coeffs):
+    ranges = []
+    renormalized = np.zeros(shape=coeffs.shape)
+    for l in range(0,lmax+1):
+        index_start = shIndex(l, -l)
+        index_end = shIndex(l+1, -l-1)
+        maxi = np.max(coeffs[:,:,index_start:index_end])
+        mini = np.min(coeffs[:,:,index_start:index_end])
+        ranges.append([mini, maxi])
+
+    for l in range(0,lmax+1):
+        for m in range(-l,l+1):
+            index = shIndex(l, m)
+            minl, maxl = ranges[l]
+            renormalized[:,:,index] = np.interp(coeffs[:,:,index], (minl, maxl), (0, 1))
+
+    print("Normalize Bound is {0}".format(ranges))
+
+    return renormalized

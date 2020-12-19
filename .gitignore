@@ -77,3 +77,4 @@ hou/render
 hou/geo
 hou/backup
 *.pyc
+hou/dataset

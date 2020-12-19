@@ -58,12 +58,3 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--maxlevel", type=int, help="pixel x index", default=4)
     args = vars(parser.parse_args())
     main(args['maxlevel'])
-
-'''
-plt.rc('text', usetex=True)
-
-fig = plt.figure(figsize=2*plt.figaspect(1.))
-ax = fig.add_subplot(projection='3d')
-plot_points(ax, coords=dataset.item().get('coords'), colors=dataset.item().get('colors')[:,pix_y,pix_x])
-plot_sh(ax, LMAX, coeffs[pix_y,pix_x,:])
-plt.show()'''
