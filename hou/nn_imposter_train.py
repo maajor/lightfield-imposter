@@ -11,11 +11,12 @@ import tqdm
 from utils.loader import collect_3d_imposter_images, prepare_3d_imposter_train_dataloader
 from utils.nets import ImposterNN
 
-# collect_images()
+RES = 128
+collect_3d_imposter_images(filename='export/3_impostor_sh_N.png', frame_res=RES)
 
 device = torch.device("cuda:0")
 BATCH_SIZE = 10
-TRAIN_EPOCHS = 300
+TRAIN_EPOCHS = 100
 
 train_loader, test_loader = prepare_3d_imposter_train_dataloader(batch_size=BATCH_SIZE)
 
@@ -67,8 +68,9 @@ def plot(train_loss, test_loss, save_name):
 def train(model, save_name):
     train_loss = []
     test_loss = []
+    model.load_state_dict(torch.load('model/' + save_name + ".pth"))
     model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=5e-3, betas=(0.9, 0.999))
+    optimizer = optim.Adam(model.parameters(), lr=5e-5, betas=(0.9, 0.999))
     loop = tqdm.tqdm(range(TRAIN_EPOCHS))
     for epoch in loop:
         train_loss.append(train_epoch(epoch, model, optimizer))
@@ -83,7 +85,7 @@ def test(model, saved_name):
     test_epoch(0, model)
 
 def train_all():
-    model = ImposterNN()
+    model = ImposterNN(RES=RES)
     train(model, "imposternn")
 
 if __name__ == "__main__":

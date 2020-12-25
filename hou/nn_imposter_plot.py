@@ -22,7 +22,7 @@ loss_fn = torch.nn.MSELoss(reduction='sum')
 def render_by_angle(model, theta, phi):
     with torch.no_grad():
         coords = torch.Tensor([theta, phi]).to(device)
-        pred_colors = model(coords)
+        pred_colors = model(coords.unsqueeze(0))
     pred_colors = pred_colors.cpu()
     return pred_colors
 
