@@ -26,8 +26,10 @@ class ImposterNN(nn.Module):
 
         self.fc3 = nn.Linear(2*W, 4*W)
 
+        self.fc4 = nn.Linear(4*W, 4*W)
+
         self.up1 = nn.Upsample(scale_factor=2, mode='nearest')
-        self.conv1 = nn.Conv2d(4, 8, 3, stride=1, padding=1)
+        '''self.conv1 = nn.Conv2d(4, 8, 3, stride=1, padding=1)
 
         self.up2 = nn.Upsample(scale_factor=2, mode='nearest')
         self.conv2 = nn.Conv2d(8, 16, 3, stride=1, padding=1)
@@ -35,22 +37,23 @@ class ImposterNN(nn.Module):
         self.up3 = nn.Upsample(scale_factor=2, mode='nearest')
         self.conv3 = nn.Conv2d(16, 32, 3, stride=1, padding=1)
 
-        self.up4 = nn.Upsample(scale_factor=2, mode='nearest')
         self.conv4 = nn.Conv2d(32, 16, 3, stride=1, padding=1)
 
-        self.conv5 = nn.Conv2d(16, 4, 3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(16, 4, 3, stride=1, padding=1)'''
 
-
+ 
     def forward(self, x):
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)
         x = F.relu(x)
         x = self.fc3(x)
-        x = F.relu(x).reshape((-1, 4, 16, 16))
+        x = F.relu(x)
+        x = self.fc4(x).reshape((-1, 4, 16, 16))
+        #x = F.reshape((-1, 4, 16, 16))
 
-        x = self.up1(x)
-        x = self.conv1(x)
+        #x = self.up1(x)
+        '''x = self.conv1(x)
         x = F.relu(x)
 
         x = self.up2(x)
@@ -61,21 +64,23 @@ class ImposterNN(nn.Module):
         x = self.conv3(x)
         x = F.relu(x)
 
-        x = self.up4(x)
         x = self.conv4(x)
         x = F.relu(x)
 
-        x = self.conv5(x)
+        x = self.conv5(x)'''
 
         return x.permute(0,2,3,1)
 
 def collect_images():
     grid=16
+    target_res = 16
     theta_step = np.pi / grid
     phi_step = np.pi * 2 / grid
-    im = np.array(Image.open('export/impostor_sh_basecolour.png'))
-    w_res = int(im.shape[0]/grid)
-    h_res = int(im.shape[1]/grid)
+    im = Image.open('export/3_impostor_sh_N.png')
+    im = im.resize((target_res*grid,target_res*grid))
+    im = np.array(im)
+    w_res = target_res
+    h_res = target_res
     imgs = np.zeros((grid*grid, w_res,h_res, 4))
     angles = np.zeros((grid*grid, 2))
     imgid = 0
@@ -90,9 +95,9 @@ def collect_images():
             imgid += 1
     np.save("dataset/pig_imposter", {"colors":imgs, "coords":angles})
 
-
-def prepare_imposter_train_dataloader(path="dataset/pig_imposter.npy", batch_size=10):
-    dataset = np.load(path, allow_pickle=True)
+collect_images()
+dataset = np.load("dataset/pig_imposter.npy", allow_pickle=True)
+def prepare_imposter_train_dataloader(batch_size=10):
     colors = dataset.item().get('colors')
     coords = dataset.item().get('coords')
 
@@ -112,17 +117,15 @@ def prepare_imposter_train_dataloader(path="dataset/pig_imposter.npy", batch_siz
             dataset=data_set,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=2,
+            num_workers=1,
         )
         return loader
 
     return loader(train_colors, train_coords, batch_size), loader(test_colors, test_coords, batch_size)
 
-collect_images()
-
 device = torch.device("cuda:0")
 BATCH_SIZE = 10
-TRAIN_EPOCHS = 1000
+TRAIN_EPOCHS = 300
 
 train_loader, test_loader = prepare_imposter_train_dataloader(batch_size=BATCH_SIZE)
 
