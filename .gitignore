@@ -78,3 +78,6 @@ hou/geo
 hou/backup
 *.pyc
 hou/dataset
+hou/tmp
+hou/model
+hou/export
