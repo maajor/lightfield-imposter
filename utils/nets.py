@@ -13,7 +13,7 @@ class ImposterNN(nn.Module):
         self.RES = RES
         self.input_ch = 4 # phi, theta, x, y
 
-        self.fc_in = nn.Linear(self.input_ch, W)
+        self.fc_in = nn.Linear(4, W)
         self.fcs = nn.ModuleList([nn.Linear(W, W) for i in range(D)])
         self.fc_out = nn.Linear(W, 4)
 
@@ -22,6 +22,7 @@ class ImposterNN(nn.Module):
         self.meshgrid = torch.stack((x_grid, y_grid)).float().cuda()
         # renormalize to -1, 1
         self.meshgrid = (self.meshgrid / self.RES - 0.5) * 2
+        self.meshgrid.requires_grad = False
 
     def forward(self, x):
         # concatenate meshgrid to angle input

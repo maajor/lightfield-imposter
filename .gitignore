@@ -73,12 +73,12 @@ Plugins/*/Intermediate/*
 # Cache files for the editor to use
 DerivedDataCache/*
 
-hou/render
-hou/geo
-hou/backup
+render
+geo
+backup
 *.pyc
-hou/dataset
-hou/tmp
-hou/model
-hou/export
+dataset
+tmp
+model
+export
 unity/

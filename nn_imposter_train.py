@@ -1,3 +1,4 @@
+import os
 import torch
 torch.autograd.set_detect_anomaly(True)
 from torch import nn, optim
@@ -12,11 +13,11 @@ from utils.loader import collect_3d_imposter_images, prepare_3d_imposter_train_d
 from utils.nets import ImposterNN
 
 RES = 128
-collect_3d_imposter_images(filename='export/3_impostor_sh_N.png', frame_res=RES)
+collect_3d_imposter_images(grid=16, filename='export/impostor_sh_N.png', frame_res=RES)
 
 device = torch.device("cuda:0")
 BATCH_SIZE = 10
-TRAIN_EPOCHS = 100
+TRAIN_EPOCHS = 500
 
 train_loader, test_loader = prepare_3d_imposter_train_dataloader(batch_size=BATCH_SIZE)
 
@@ -34,7 +35,7 @@ def train_epoch(epoch, model, optimizer):
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
-    train_loss = train_loss/ len(train_loader.dataset)
+    train_loss = train_loss * 255 / (len(train_loader.dataset) * (RES*RES*4))
     print('====> Epoch: {} Average loss: {:.4f}'.format(epoch, train_loss))
     return train_loss
 
@@ -48,7 +49,7 @@ def test_epoch(epoch, model):
             colors = colors.to(device)
             test_loss += loss_fn(pred_colors, colors).item()
 
-    test_loss /= len(test_loader.dataset)
+    test_loss = test_loss * 255 / (len(test_loader.dataset) * (RES*RES*4))
     print('====> Test set loss: {:.4f}'.format(test_loss))
     return test_loss
 
@@ -68,7 +69,9 @@ def plot(train_loss, test_loss, save_name):
 def train(model, save_name):
     train_loss = []
     test_loss = []
-    model.load_state_dict(torch.load('model/' + save_name + ".pth"))
+    model_path = 'model/' + save_name + ".pth"
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load('model/' + save_name + ".pth"))
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=5e-5, betas=(0.9, 0.999))
     loop = tqdm.tqdm(range(TRAIN_EPOCHS))

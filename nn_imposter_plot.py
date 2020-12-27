@@ -36,7 +36,7 @@ def plot_compare(saved_name):
     colors = dataset.item().get('colors')
     coords = dataset.item().get('coords')
 
-    GRID=16
+    GRID = 16
     theta = 0.4
     phi_min = -0.3
     phi_max = 0.3
@@ -66,7 +66,7 @@ def gen_gif():
         im =Image.open('tmp/{0}'.format(f))
         imgs.append(im)
     imgs[0].save('compare_nn_imposter.gif',
-               save_all=True, append_images=imgs[1:], optimize=True, loop=2)
+               save_all=True, append_images=imgs[1:], optimize=True, loop=0)
 
 if __name__ == "__main__":
     plot_compare("imposternn")
