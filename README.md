@@ -94,5 +94,6 @@ python nn_imposter_plot.py
 ```
 ![img](imgs/compare_nn_imposter.gif)
 
-# Refs.  
-Read more about explanation of this experiment on my blog.  
+# Reference
+
+Read more explanation of this experiment on my blog [Game Art Trick – Light Field And Imposter | 游戏美术技巧 – 光场与公告板](http://ma-yidong.com/2020/12/27/game-art-trick-light-field-and-imposter/)  
